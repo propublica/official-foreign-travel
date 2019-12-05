@@ -8,39 +8,39 @@ from bs4 import BeautifulSoup
 ## Collects all report URLs and text
 def get_quarterly_urls(url):
     urls = []
-    
-    years = range(1994, 2018)
+
+    years = range(1994, 2020)
     quarters = [1,2,3,4]
-    
+
     for year in years:
         for quarter in quarters:
             url = re.sub('ddlYearField=[0-9]{4}','ddlYearField=%i' % year, url)
             url = re.sub('ddlQuartField=q[0-9]','ddlQuartField=q%i' % quarter, url)
-            
+
             urls.append({'y':year, 'q': quarter, 'url': url})
-    
+
     return urls
 
 def get_report_urls(quarterly_urls):
-    report_urls = [] 
-    
+    report_urls = []
+
     for quarter in quarterly_urls:
         y   = quarter['y']
         q   = quarter['q']
         url = quarter['url']
-        
-        print ">>> Getting %i Q%i" % (y, q)
-        
+
+        print(">>> Getting %i Q%i" % (y, q))
+
         r = requests.get(url)
-        
+
         soup  = BeautifulSoup(r.text, 'html.parser')
         links = soup.find_all('a', href=True)
-        
+
         reports = [ l['href'] for l in links if re.match('^/foreign/reports/[A-Za-z0-9]+.txt$',l['href']) ]
         entries = [ {'year': y, 'quarter': q, 'report_url': r} for r in reports ]
-        
+
         report_urls += entries
-    
+
     return report_urls
 
 def get_report_text(report):
@@ -48,9 +48,9 @@ def get_report_text(report):
     url   = report['report_url']
     r     = requests.get(ROOT + url)
     text  = r.text.encode('utf-8')
-    
+
     file_name = url[::-1].split('/')[0][::-1]
-    
+
     with open('report_text/%s' % file_name, 'w') as f:
         f.write(text)
 
@@ -67,13 +67,13 @@ with open('report_urls.txt', 'a') as f:
 
 for report in report_urls:
     url = report['report_url']
-    
+
     file_name = url[::-1].split('/')[0][::-1]
     files_collected = [f for f in listdir('report_text')]
-    
+
     if file_name not in files_collected:
         try:
             get_report_text(report)
         except Exception as e:
-            print e
-            print report
+            print(e)
+            print(report)
