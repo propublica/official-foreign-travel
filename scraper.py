@@ -8,6 +8,11 @@ def get_members():
         reader = csv.DictReader(csvfile)
         return list(reader)
 
+def get_committees():
+    with open('committees.csv','r') as csvfile:
+        reader = csv.DictReader(csvfile)
+        return list(reader)
+
 def skip_line(line):
     patterns = [
         r'^ *[[.*]] *$',
@@ -33,6 +38,7 @@ def end_line(line):
 def get_lines(file, year, include_table_header=True, print_debug_lines=False):
     print(year)
     members = get_members()
+    committees = get_committees()
     start_line = '-{107}\\\\2\\\\-{23}\\\\2\\\\'
     header_search_string = r'REPORTS? OF EXPENDITURES FOR '
     committee_search_string = r'COMMITTEE ON '
@@ -46,15 +52,18 @@ def get_lines(file, year, include_table_header=True, print_debug_lines=False):
     current_name = ''
     header_line = ''
     committee = ''
+    committee_code = ''
     for line in file:
         if re.search(header_search_string, line):
             header_line = line.strip()
             if re.search(committee_search_string, line):
                 committee = header_line.split(',')[1]
+                committee_code = next((x['code'] for x in committees if x['name'].upper() == committee.strip()),'')
             if re.search(delegation_search_string, line):
                 committee = header_line.split(',')[1]
             if re.search(select_committee_search_string, line):
                 committee = header_line.split(',')[1]
+                committee_code = next((x['code'] for x in committees if x['name'].upper() == committee.strip()),'')
             if re.search(commission_search_string, line):
                 committee = header_line.split(',')[1]
             if re.search(interparliamentary_search_string, line):
@@ -85,6 +94,7 @@ def get_lines(file, year, include_table_header=True, print_debug_lines=False):
                 if include_table_header:
                     values.append(header_line.strip())
                     values.append(committee.strip())
+                    values.append(committee_code)
                 yield values
         else:
             continue
@@ -148,6 +158,7 @@ def write_header_line(out_file):
              'country',
              'table_header',
              'committee',
+             'committee_code',
              'source_file']
     print(','.join(['"' + c + '"' for c in items]), file=out_file)
 
