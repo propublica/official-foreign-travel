@@ -1,6 +1,12 @@
 import re
 import os
 import sys
+import csv
+
+def get_members():
+    with open('members.csv','r') as csvfile:
+        reader = csv.DictReader(csvfile)
+        return list(reader)
 
 def skip_line(line):
     patterns = [
@@ -26,16 +32,21 @@ def end_line(line):
 
 def get_lines(file, year, include_table_header=True, print_debug_lines=False):
     print(year)
+    members = get_members()
     start_line = '-{107}\\\\2\\\\-{23}\\\\2\\\\'
     header_search_string = r'REPORTS? OF EXPENDITURES FOR '
+    committee_search_string = r'COMMITTEE ON '
     lines = []
     record_lines = False
     previous_line = ''
     current_name = ''
     header_line = ''
+    committee = ''
     for line in file:
         if re.search(header_search_string, line):
             header_line = line.strip()
+            if re.search(committee_search_string, line):
+                committee = header_line.split(',')[1]
         elif re.search(start_line, line):
             record_lines = True
         elif end_line(line):
@@ -52,7 +63,7 @@ def get_lines(file, year, include_table_header=True, print_debug_lines=False):
                     myYear = end_of_header_year.group(0)[0:4]
                 else:
                     print(header_line)
-                values = get_columns(line, myYear)
+                values = get_columns(line, myYear, members)
                 if(len(values) == 0):
                     continue
                 if(values[0] == ''):
@@ -61,6 +72,7 @@ def get_lines(file, year, include_table_header=True, print_debug_lines=False):
                     current_name = values[0]
                 if include_table_header:
                     values.append(header_line.strip())
+                    values.append(committee.strip())
                 yield values
         else:
             continue
@@ -80,13 +92,16 @@ def clean_cell(value, default=''):
     else:
         return value
 
-def get_columns(line, year):
+def get_columns(line, year, members):
     """Extract the columns. Uses absolute spacing."""
 
     items = []
     # Get the representative's name
     name = clean_cell(line[0:39])
     items.append(name)
+
+    member_id = next((x['bioguide_id'] for x in members if x['name'] == name.upper()),'')
+    items.append(member_id)
 
     honorific = get_honorific(name)
     items.append(honorific)
@@ -95,7 +110,7 @@ def get_columns(line, year):
     arrival_date = clean_cell(line[43:48])
     if arrival_date == '':
         return []
-    
+
     arrival_date += '/' + year
     items.append(arrival_date)
 
@@ -114,11 +129,13 @@ def get_columns(line, year):
 
 def write_header_line(out_file):
     items = ['name',
+             'member_id',
              'honorific',
              'arrival_date',
              'departure_date',
              'country',
              'table_header',
+             'committee',
              'source_file']
     print(','.join(['"' + c + '"' for c in items]), file=out_file)
 
