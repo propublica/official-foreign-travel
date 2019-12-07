@@ -36,6 +36,10 @@ def get_lines(file, year, include_table_header=True, print_debug_lines=False):
     start_line = '-{107}\\\\2\\\\-{23}\\\\2\\\\'
     header_search_string = r'REPORTS? OF EXPENDITURES FOR '
     committee_search_string = r'COMMITTEE ON '
+    delegation_search_string = r'DELEGATION TO '
+    select_committee_search_string = r'PERMANENT SELECT COMMITTEE '
+    commission_search_string = r'COMMISSION ON '
+    interparliamentary_search_string = r'MEXICO-UNITED STATES'
     lines = []
     record_lines = False
     previous_line = ''
@@ -46,6 +50,14 @@ def get_lines(file, year, include_table_header=True, print_debug_lines=False):
         if re.search(header_search_string, line):
             header_line = line.strip()
             if re.search(committee_search_string, line):
+                committee = header_line.split(',')[1]
+            if re.search(delegation_search_string, line):
+                committee = header_line.split(',')[1]
+            if re.search(select_committee_search_string, line):
+                committee = header_line.split(',')[1]
+            if re.search(commission_search_string, line):
+                committee = header_line.split(',')[1]
+            if re.search(interparliamentary_search_string, line):
                 committee = header_line.split(',')[1]
         elif re.search(start_line, line):
             record_lines = True
